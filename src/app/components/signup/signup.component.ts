@@ -64,7 +64,7 @@ import { CommonModule } from '@angular/common';
           </button>
         </form>
 
-        <div class="signin-link">
+        <div class="auth-links">
           <p>Already have an account? <a routerLink="/signin">Sign In</a></p>
         </div>
       </div>
@@ -151,17 +151,17 @@ import { CommonModule } from '@angular/common';
       cursor: not-allowed;
     }
 
-    .signin-link {
+    .auth-links {
       text-align: center;
-      margin-top: 1rem;
+      margin-top: 20px;
     }
-
-    .signin-link a {
+    
+    .auth-links a {
       color: #667eea;
       text-decoration: none;
     }
-
-    .signin-link a:hover {
+    
+    .auth-links a:hover {
       text-decoration: underline;
     }
   `]
@@ -193,7 +193,6 @@ export class Signup {
     
     return null;
   }
-
   onSignup() {
     if (this.signupForm.valid) {
       this.isLoading = true;

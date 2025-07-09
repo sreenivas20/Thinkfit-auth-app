@@ -51,6 +51,15 @@ import { filter } from 'rxjs/operators';
               Settings
             </button>
           </li>
+          <li class="menu-item">
+            <button 
+              class="menu-button" 
+              [class.active]="activeMenu === 'Logout'"
+              (click)="logout()">
+              <i class="icon">⚙️</i>
+              Logout
+            </button>
+          </li>
         </ul>
       </nav>
 
@@ -313,6 +322,13 @@ export class Home implements OnInit {
       }
     });
   }
+
+    logout() {
+    // In a real app, you'd call your authentication service to logout
+    console.log('User logged out');
+    alert('You have been logged out!');
+    this.router.navigate(['/signin']);
+    }
 
   setActiveMenu(menu: string): void {
     this.activeMenu = menu;
