@@ -12,8 +12,8 @@ import { CommonModule } from '@angular/common';
       <div class="profile-header">
         <div class="profile-avatar">
           <img [src]="currentUser?.profilePicture || 'assets/default-avatar.png'" 
-               [alt]="currentUser?.firstName + ' ' + currentUser?.lastName"
-               onerror="this.src='https://via.placeholder.com/100x100/667eea/white?text=User'">
+               [alt]="(currentUser?.firstName || '') + ' ' + (currentUser?.lastName || '')"
+               onerror="this.src='https://placehold.co/100x100/667eea/white?text=User'">
         </div>
         <div class="profile-info">
           <h1>{{ currentUser?.firstName }} {{ currentUser?.lastName }}</h1>
@@ -25,6 +25,7 @@ import { CommonModule } from '@angular/common';
       </div>
 
       <div class="profile-content">
+        <!-- VIEW MODE -->
         <div class="profile-section" *ngIf="!isEditing">
           <h2>Personal Information</h2>
           <div class="info-grid">
@@ -55,6 +56,7 @@ import { CommonModule } from '@angular/common';
           </div>
         </div>
 
+        <!-- EDIT MODE -->
         <div class="profile-section" *ngIf="isEditing">
           <h2>Edit Profile</h2>
           <form [formGroup]="editForm" (ngSubmit)="onSaveProfile()">
@@ -139,8 +141,10 @@ import { CommonModule } from '@angular/common';
   styles: [`
     .profile-container {
       max-width: 800px;
-      margin: 0 auto;
+      margin: 2rem auto;
       padding: 2rem;
+      font-family: 'Inter', sans-serif;
+      background-color: #f9fafb;
     }
 
     .profile-header {
@@ -151,11 +155,7 @@ import { CommonModule } from '@angular/common';
       padding: 2rem;
       background: white;
       border-radius: 12px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-    }
-
-    .profile-avatar {
-      flex-shrink: 0;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
     }
 
     .profile-avatar img {
@@ -187,6 +187,7 @@ import { CommonModule } from '@angular/common';
       border: none;
       border-radius: 8px;
       cursor: pointer;
+      font-weight: 500;
       transition: background-color 0.3s;
     }
 
@@ -198,11 +199,12 @@ import { CommonModule } from '@angular/common';
       background: white;
       padding: 2rem;
       border-radius: 12px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
     }
 
     .profile-section h2 {
       color: #333;
+      margin-top: 0;
       margin-bottom: 1.5rem;
       padding-bottom: 0.5rem;
       border-bottom: 2px solid #f0f0f0;
@@ -212,10 +214,6 @@ import { CommonModule } from '@angular/common';
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
       gap: 1.5rem;
-    }
-
-    .info-item {
-      margin-bottom: 1rem;
     }
 
     .info-item.full-width {
@@ -232,8 +230,6 @@ import { CommonModule } from '@angular/common';
     .info-item p {
       color: #333;
       margin: 0;
-      padding: 0.5rem 0;
-      border-bottom: 1px solid #eee;
     }
 
     .form-row {
@@ -280,6 +276,7 @@ import { CommonModule } from '@angular/common';
       border: none;
       border-radius: 8px;
       font-size: 1rem;
+      font-weight: 500;
       cursor: pointer;
       transition: transform 0.2s;
     }
@@ -309,23 +306,14 @@ import { CommonModule } from '@angular/common';
         flex-direction: column;
         text-align: center;
       }
-      
       .form-row {
         grid-template-columns: 1fr;
       }
-      
       .form-actions {
         flex-direction: column;
       }
     }
   `]
-})
-
-
-@Component({
-  selector: 'app-profile',
-  templateUrl: './profile.html',
-  styleUrls: ['./profile.css']
 })
 export class ProfileComponent implements OnInit {
   currentUser: User | null = null;
@@ -340,7 +328,8 @@ export class ProfileComponent implements OnInit {
     this.editForm = this.fb.group({
       firstName: ['', Validators.required],
       lastName: ['', Validators.required],
-      email: ['', [Validators.required, Validators.email]],
+      // Email is often not editable, but keeping it as per original logic
+      email: ['', [Validators.required, Validators.email]], 
       dateOfBirth: [''],
       phone: [''],
       address: [''],
@@ -353,21 +342,19 @@ export class ProfileComponent implements OnInit {
   }
 
   loadUserProfile(): void {
-    // Get current user from service
+    // Attempt to get the user immediately from the service
     this.currentUser = this.userService.getCurrentUser();
     if (this.currentUser) {
       this.populateForm();
     }
-    
-    // Also subscribe to user changes
-    this.userService.currentUser$.subscribe(
-      (user: User | null) => {
-        this.currentUser = user;
-        if (user) {
-          this.populateForm();
-        }
+
+    // Subscribe to any future changes to the user object
+    this.userService.currentUser$.subscribe((user: User | null) => {
+      this.currentUser = user;
+      if (user) {
+        this.populateForm();
       }
-    );
+    });
   }
 
   populateForm(): void {
@@ -387,84 +374,55 @@ export class ProfileComponent implements OnInit {
   toggleEdit(): void {
     this.isEditing = !this.isEditing;
     if (this.isEditing) {
-      this.populateForm();
+      this.populateForm(); // Ensure form has the latest data when switching to edit mode
     }
   }
 
   onSaveProfile(): void {
-    if (this.editForm.valid && this.currentUser) {
-      this.isLoading = true; // Start loading
-      
-      const updatedUserData: Partial<User> = {
-        firstName: this.editForm.value.firstName,
-        lastName: this.editForm.value.lastName,
-        email: this.editForm.value.email,
-        dateOfBirth: this.editForm.value.dateOfBirth,
-        phone: this.editForm.value.phone,
-        address: this.editForm.value.address,
-        bio: this.editForm.value.bio
-      };
-
-      this.userService.updateUserProfile(updatedUserData).subscribe(
-        (user: User) => {
-          this.currentUser = user;
-          this.isEditing = false;
-          this.isLoading = false; // Stop loading
-          console.log('Profile updated successfully');
-          // You might want to show a success message here
-        },
-        (error) => {
-          this.isLoading = false; // Stop loading on error
-          console.error('Error updating profile:', error);
-          // You might want to show an error message here
-        }
-      );
-    } else {
-      console.log('Form is invalid');
-      // Mark all fields as touched to show validation errors
-      this.editForm.markAllAsTouched();
+    if (!this.editForm.valid) {
+        // Mark all fields as touched to show validation errors
+        this.editForm.markAllAsTouched();
+        return;
     }
+
+    this.isLoading = true;
+    const updatedUserData: Partial<User> = this.editForm.value;
+
+    this.userService.updateUserProfile(updatedUserData).subscribe({
+      next: (user) => {
+        this.currentUser = user;
+        this.isEditing = false;
+        this.isLoading = false;
+        console.log('Profile updated successfully');
+        // Optionally, show a success toast/message to the user
+      },
+      error: (err) => {
+        this.isLoading = false;
+        console.error('Error updating profile:', err);
+        // Optionally, show an error message to the user
+      }
+    });
   }
 
   cancelEdit(): void {
     this.isEditing = false;
-    this.isLoading = false; // Reset loading state
-    this.populateForm(); // Reset form to original values
   }
 
   formatDate(date: string | Date | null | undefined): string {
-    if (!date) return '';
-    
+    if (!date) return 'Not provided';
     try {
-      const dateObj = typeof date === 'string' ? new Date(date) : date;
-      return dateObj.toLocaleDateString('en-US', {
+      // Handles both 'YYYY-MM-DD' strings and Date objects
+      const dateObj = new Date(date);
+      // Adjust for timezone offset to prevent date from changing
+      const userTimezoneOffset = dateObj.getTimezoneOffset() * 60000;
+      return new Date(dateObj.getTime() + userTimezoneOffset).toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
         day: 'numeric'
       });
     } catch (error) {
       console.error('Error formatting date:', error);
-      return '';
+      return String(date); // Fallback to the original string
     }
   }
-
-  // Helper method to get user's full name
-  getFullName(): string {
-    if (!this.currentUser) return '';
-    return `${this.currentUser.firstName || ''} ${this.currentUser.lastName || ''}`.trim();
-  }
-
-  // Helper method to check if user has profile picture
-  hasProfilePicture(): boolean {
-    return !!(this.currentUser && this.currentUser.profilePicture);
-  }
-
-  // Helper method to get initials for avatar
-  getInitials(): string {
-    if (!this.currentUser) return '';
-    const firstName = this.currentUser.firstName || '';
-    const lastName = this.currentUser.lastName || '';
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-  }
 }
-

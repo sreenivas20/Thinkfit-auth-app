@@ -203,7 +203,7 @@ export class Signup {
         next: (success: any) => {
           this.isLoading = false;
           if (success) {
-            this.router.navigate(['/user-details']);
+            this.router.navigate(['organization-details']);
           }
         },
         error: (error: any) => {
